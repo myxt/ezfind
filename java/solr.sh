@@ -15,5 +15,5 @@ then
 fi
 
 # start solr
-exec $JAVA -jar start.jar
+exec $JAVA -Dezfind -Xms512M -Xmx512M -jar start.jar
 
