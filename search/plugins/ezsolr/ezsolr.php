@@ -1344,9 +1344,9 @@ class eZSolr
 
     /**
      * Called when a node's visibility is modified.
-     * Simply re-index for now.
+     * Will re-index content identified by $nodeID.
+     * If the node has children, they will be also re-indexed, but this action is deferred to ezfindexsubtree cronjob.
      *
-     * @todo: defer to cron if there are children involved and re-index these too
      * @todo when Solr supports it: update fields only
      *
      * @param $nodeID
@@ -1356,8 +1356,19 @@ class eZSolr
      */
     public function updateNodeVisibility( $nodeID, $action )
     {
-        $contentObject = eZContentObject::fetchByNodeID( $nodeID );
-        $this->addObject( $contentObject );
+        $node = eZContentObjectTreeNode::fetch( $nodeID );
+        $this->addObject( $node->attribute( 'object' ) );
+        if ( $node->childrenCount( false ) )
+        {
+            $pendingAction = new eZPendingActions(
+                array(
+                    'action' => self::PENDING_ACTION_INDEX_SUBTREE,
+                    'created' => time(),
+                    'param' => $nodeID
+                )
+            );
+            $pendingAction->store();
+        }
     }
 
     /**
@@ -1524,6 +1535,7 @@ class eZSolr
     // @since ezfind 2.2, information
     public static $fieldTypeContexts = array( 'search' => 'DatatypeMap', 'facet' => 'DatatypeMapFacet', 'sort' => 'DatatypeMapSort', 'filter' => 'DatatypeMapFilter' );
 
+    const PENDING_ACTION_INDEX_SUBTREE = 'index_subtree';
 }
 
 eZSolr::$SolrDocumentFieldName = new ezfSolrDocumentFieldName();
