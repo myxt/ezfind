@@ -1782,7 +1782,7 @@ class ezfeZPSolrQueryBuilder
      * @see http://issues.ez.no/18701
      * @var string
      */
-    const CHARS_TO_ESCAPE = '+-&|!(){}[]^"~*?:\\';
+    const CHARS_TO_ESCAPE = '+-&|!(){}[]^~*?:\\';
 }
 
 ezfeZPSolrQueryBuilder::$FindINI = eZINI::instance( 'ezfind.ini' );
