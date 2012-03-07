@@ -138,7 +138,7 @@
 <div id="ezautocomplete">
     <input class="halfbox" type="text" size="20" name="SearchText" id="Search" value="{$search_text|wash}" />
     <input class="button" name="SearchButton" type="submit" value="{'Search'|i18n('design/ezwebin/content/search')}" />
-    <div id="ezautocompletecontainer"></div>
+    <div id="mainarea-autocomplete-rs"></div>
 </div>
 </p>
 {if $search_extras.spellcheck_collation}
@@ -208,9 +208,9 @@
                   {foreach $facetData.nameList as $key2 => $facetName}
                       {if eq( $activeFacetParameters[concat( $defaultFacet['field'], ':', $defaultFacet['name'] )], $facetName )}
                           {set $activeFacetsCount=sum( $key, 1 )}
-                          {def $suffix=$uriSuffix|explode( concat( '&filter[]=', $facetData.queryLimit[$key2]|wash ) )|implode( '' )|explode( concat( '&activeFacets[', $defaultFacet['field'], ':', $defaultFacet['name'], ']=', $facetName ) )|implode( '' )}
+                          {def $suffix=$uriSuffix|explode( concat( '&filter[]=', $facetData.queryLimit[$key2] ) )|implode( '' )|explode( concat( '&activeFacets[', $defaultFacet['field'], ':', $defaultFacet['name'], ']=', $facetName ) )|implode( '' )}
                           <li>
-                              <a href={concat( $baseURI, $suffix )|ezurl}>[x]</a> <strong>{$defaultFacet['name']}</strong>: {$facetName}
+                              <a href={concat( $baseURI, $suffix )|ezurl}>[x]</a> <strong>{$defaultFacet['name']}</strong>: {$facetName|trim('"')|wash}
                           </li>
                       {/if}
                   {/foreach}
@@ -244,8 +244,12 @@
                     {foreach $facetData.nameList as $key2 => $facetName}
                         {if ne( $key2, '' )}
                         <li>
-                            <a href={concat( $baseURI, '&filter[]=', $facetData.queryLimit[$key2]|urlencode, '&activeFacets[', $defaultFacet['field'], ':', $defaultFacet['name'], ']=', $facetName, $uriSuffix )|ezurl}>
-                            {$facetName}</a> ({$facetData.countList[$key2]})
+                            <a href={concat(
+                                $baseURI, '&filter[]=', $facetData.queryLimit[$key2]|rawurlencode,
+                                '&activeFacets[', $defaultFacet['field'], ':', $defaultFacet['name'], ']=',
+                                $facetName|rawurlencode,
+                                $uriSuffix )|ezurl}>
+                            {$facetName|trim('"')|wash}</a> ({$facetData.countList[$key2]})
                         </li>
                         {/if}
                     {/foreach}
@@ -317,18 +321,15 @@
 <div class="border-bl"><div class="border-br"><div class="border-bc"></div></div></div>
 </div>
 
-
-<script type="text/javascript">
-jQuery('#ezautocompletecontainer').css('width', jQuery('input#Search').width());
-var ezAutoHeader = eZAJAXAutoComplete();
-ezAutoHeader.init({ldelim}
-
+{ezscript_require( array('ezjsc::jquery', 'ezjsc::yui2', 'ezajax_autocomplete.js') )}
+<script language="JavaScript" type="text/javascript">
+jQuery('#mainarea-autocomplete-rs').css('width', jQuery('input#Search').width());
+var autocomplete = new eZAJAXAutoComplete({ldelim}
     url: "{'ezjscore/call/ezfind::autocomplete'|ezurl('no')}",
     inputid: 'Search',
-    containerid: 'ezautocompletecontainer',
+    containerid: 'mainarea-autocomplete-rs',
     minquerylength: {ezini( 'AutoCompleteSettings', 'MinQueryLength', 'ezfind.ini' )},
     resultlimit: {ezini( 'AutoCompleteSettings', 'Limit', 'ezfind.ini' )}
-
 {rdelim});
 
 {literal}
