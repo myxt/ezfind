@@ -410,11 +410,10 @@ class eZSolr implements ezpSearchEngine
      *
      * @param eZContentObject $contentObject Object to add to search engine
      * @param bool $commit Whether to commit after adding the object.
-     *        If set, run optimize() as well every 1000nd time this function is run.
-     * @param $commitWithin Commit within delay (see Solr documentation)
+              If set, run optimize() as well every 1000nd time this function is run.
      * @return bool True if the operation succeed.
      */
-    function addObject( $contentObject, $commit = true, $commitWithin = 0 )
+    function addObject( $contentObject, $commit = true )
     {
         // Add all translations to the document list
         $docList = array();
@@ -627,12 +626,34 @@ class eZSolr implements ezpSearchEngine
             $docList[$languageCode] = $doc;
         }
 
+        // Since eZFind 2.7: indexhooks
+        $generalPlugins = $this->FindINI->variable( 'IndexPlugins', 'General' );
+        $classPlugins   = $this->FindINI->variable( 'IndexPlugins', 'Class' );
+        if (!empty($generalPlugins))
+        {
+            foreach ($generalPlugins as $pluginClassString) {
+                $plugin = new $pluginClassString;
+                if ($plugin instanceof ezfIndexPlugin) {
+                    $plugin->modify($contentObject, $docList);
+                }
+            }
+        }
+
+        if (array_key_exists($contentObject->attribute('class_identifier'), $classPlugins))
+        {
+            $plugin = new $classPlugins[$contentObject->attribute('class_identifier')];
+            if ($plugin instanceof ezfIndexPlugin) {
+                    $plugin->modify($contentObject, $docList);
+            }
+        }
+
         $optimize = false;
         if ( $this->FindINI->variable( 'IndexOptions', 'DisableDirectCommits' ) === 'true' )
         {
             $commit = false;
         }
-        if ( $commitWithin === 0 && $this->FindINI->variable( 'IndexOptions', 'CommitWithin' ) > 0 )
+        $commitWithin = 0;
+        if ( $this->FindINI->variable( 'IndexOptions', 'CommitWithin' ) > 0 )
         {
             $commitWithin = $this->FindINI->variable( 'IndexOptions', 'CommitWithin' );
         }
