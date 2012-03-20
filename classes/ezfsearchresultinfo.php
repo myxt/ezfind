@@ -61,6 +61,8 @@ class ezfSearchResultInfo
     {
         return array( 'facet_fields',
                       'facet_queries',
+                      'facet_dates',
+                      'facet_ranges',
                       'engine',
                       'hasError',
                       'error',
@@ -70,7 +72,9 @@ class ezfSearchResultInfo
                       // but a border case is present when "collation"
                       // is also a word searched for and not present in the
                       // spellcheck dictionary/index -- Solr php response writer "bug"
-                      'spellcheck_collation' );
+                      'spellcheck_collation',
+                      'interestingTerms'
+            );
     }
 
     /**
@@ -295,6 +299,29 @@ class ezfSearchResultInfo
                 if ( isset( $this->ResultArray['interestingTerms'] ) )
                 {
                     return $this->ResultArray['interestingTerms'];
+                }
+                else
+                {
+                    return false;
+                }
+            } break;
+            case 'facet_dates':
+            {
+                if ( isset( $this->ResultArray['facet_dates'] ) )
+                {
+                    return $this->ResultArray['facet_dates'];
+                }
+                else
+                {
+                    return false;
+                }
+            } break;
+
+            case 'facet_ranges':
+            {
+                if ( isset( $this->ResultArray['facet_counts']['facet_ranges'] ) )
+                {
+                    return $this->ResultArray['facet_counts']['facet_ranges'];
                 }
                 else
                 {

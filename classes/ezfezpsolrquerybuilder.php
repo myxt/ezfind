@@ -157,10 +157,7 @@ class ezfeZPSolrQueryBuilder
         // eZFInd 2.3: check ini setting and take it as a default instead of false
         $visibilityDefaultSetting = self::$SiteINI->variable( 'SiteAccessSettings', 'ShowHiddenNodes' );
         $visibilityDefault = ( $visibilityDefaultSetting === 'true' ) ? true : false;
-        eZDebug::writeDebug( intval( $visibilityDefault ), 'visibilityDefault' );
-        //eZDebug::writeDebug( $params['IgnoreVisibility'], 'params[IgnoreVisibility]' );
         $ignoreVisibility = isset( $params['IgnoreVisibility'] )  ?  $params['IgnoreVisibility'] : $visibilityDefault;
-        eZDebug::writeDebug( intval( $ignoreVisibility ), 'ignoreVisibility' );
         $limitation = isset( $params['Limitation'] )  ?  $params['Limitation'] : null;
         $boostFunctions = isset( $params['BoostFunctions'] )  ?  $params['BoostFunctions'] : null;
         $forceElevation = isset( $params['ForceElevation'] )  ?  $params['ForceElevation'] : false;
@@ -1066,7 +1063,9 @@ class ezfeZPSolrQueryBuilder
         {
             if ( empty( $facetDefinition['field'] ) and
                  empty( $facetDefinition['query'] ) and
-                 empty( $facetDefinition['date'] ) )
+                 empty( $facetDefinition['date'] ) and
+                 empty( $facetDefinition['range'] ) and
+                 empty( $facetDefinition['prefix'] ) )
             {
                 eZDebug::writeDebug( 'No facet field or query provided.', __METHOD__ );
                 continue;
@@ -1129,9 +1128,62 @@ class ezfeZPSolrQueryBuilder
             }
 
             // Get prefix.
+            // TODO: make this per mandatory per field in order to construct f.<fieldname>.facet.prefix queries
             if ( !empty( $facetDefinition['prefix'] ) )
             {
                 $queryPart['prefix'] = $facetDefinition['prefix'];
+            }
+
+            // range facets: fill the $queryParamList array directly
+            if ( !empty( $facetDefinition['range'])
+                    && !empty( $facetDefinition['range']['field'] )
+                    && !empty( $facetDefinition['range']['start'] )
+                    && !empty( $facetDefinition['range']['end'])
+                    && !empty( $facetDefinition['range']['gap']))
+            {
+                $fieldName = '';
+
+
+                switch( $facetDefinition['range']['field'] )
+                {
+                    case 'published':
+                    {
+                        $fieldName = eZSolr::getMetaFieldName( 'published', 'facet' );
+                    } break;
+
+                    case 'modified':
+                    {
+                        $fieldName = eZSolr::getMetaFieldName( 'modified', 'facet' );
+                    } break;
+
+                    default:
+                    {
+                        $fieldName = eZSolr::getFieldName( $facetDefinition['field'], false, 'facet' );
+                    }
+                }
+
+                $perFieldRangePrefix = 'f.' . $fieldName . '.facet.range';
+
+                $queryParamList['facet.range'] = $fieldName;
+
+                $queryParamList[$perFieldRangePrefix . '.start'] = $facetDefinition['range']['start'];
+                $queryParamList[$perFieldRangePrefix . '.end']   = $facetDefinition['range']['end'];
+                $queryParamList[$perFieldRangePrefix . '.gap']   = $facetDefinition['range']['gap'];
+
+                if( !empty( $facetDefinition['range']['hardend']))
+                {
+                    $queryParamList[$perFieldRangePrefix . '.hardend'] = $facetDefinition['range']['hardend'];
+                }
+
+                if( !empty( $facetDefinition['range']['include']))
+                {
+                    $queryParamList[$perFieldRangePrefix . '.include'] = $facetDefinition['range']['include'];
+                }
+
+                if( !empty( $facetDefinition['range']['other']))
+                {
+                    $queryParamList[$perFieldRangePrefix . '.other']   = $facetDefinition['range']['other'];
+                }
             }
 
             // Get sort option.
@@ -1261,7 +1313,12 @@ class ezfeZPSolrQueryBuilder
             {
                 foreach ( $queryPart as $key => $value )
                 {
-                    if (
+                    // check for fully prepared parameter names, like the per field options
+                    if ( strpos( $key, 'f.' ) === 0 )
+                    {
+                        $queryParamList[$key] = $value;
+                    }
+                    elseif (
                         $key !== 'field'
                         && !empty( $queryParamList['facet.' . $key] )
                         && isset( $queryPart['field'] )
@@ -1629,8 +1686,6 @@ class ezfeZPSolrQueryBuilder
             $filterQuery .= ' AND ' . eZSolr::getMetaFieldName( 'is_invisible' ) . ':false';
         }
 
-        eZDebug::writeDebug( intval( eZContentObjectTreeNode::showInvisibleNodes() ), 'show invisible nodes' );
-        eZDebug::writeDebug( intval( $ignoreVisibility ), 'ignore visibility' );
         eZDebug::writeDebug( $filterQuery, __METHOD__ );
 
         return $filterQuery;

@@ -119,6 +119,7 @@ class eZSolr implements ezpSearchEngine
                       'is_invisible' => 'boolean',
                       'sort_field' => 'mstring',
                       'sort_order' => 'mstring',
+                      'priority' => 'sint',
                       'depth' => 'sint',
                       'view_count' => 'sint' );
     }
@@ -629,21 +630,33 @@ class eZSolr implements ezpSearchEngine
         // Since eZFind 2.7: indexhooks
         $generalPlugins = $this->FindINI->variable( 'IndexPlugins', 'General' );
         $classPlugins   = $this->FindINI->variable( 'IndexPlugins', 'Class' );
-        if (!empty($generalPlugins))
+        if ( !empty( $generalPlugins ) )
         {
-            foreach ($generalPlugins as $pluginClassString) {
+            foreach ( $generalPlugins as $pluginClassString )
+            {
+                if( !class_exists( $pluginClassString ) )
+                {
+                    eZDebug::writeError( "Unable to find the PHP class '$classname' defined for index time plugins for eZ Find", __METHOD__ );
+                    continue;
+                }
                 $plugin = new $pluginClassString;
-                if ($plugin instanceof ezfIndexPlugin) {
-                    $plugin->modify($contentObject, $docList);
+                if ( $plugin instanceof ezfIndexPlugin )
+                {
+                    $plugin->modify( $contentObject, $docList );
                 }
             }
         }
 
-        if (array_key_exists($contentObject->attribute('class_identifier'), $classPlugins))
+        if (array_key_exists($contentObject->attribute( 'class_identifier' ), $classPlugins ) )
         {
-            $plugin = new $classPlugins[$contentObject->attribute('class_identifier')];
-            if ($plugin instanceof ezfIndexPlugin) {
-                    $plugin->modify($contentObject, $docList);
+            $pluginClassString = $classPlugins[$contentObject->attribute( 'class_identifier' )];
+            if ( class_exists( $pluginClassString ) )
+            {
+                $plugin = new $pluginClassString;
+                if ($plugin instanceof ezfIndexPlugin)
+                {
+                        $plugin->modify( $contentObject, $docList );
+                }
             }
         }
 
@@ -836,6 +849,16 @@ class eZSolr implements ezpSearchEngine
 
         $asObjects = isset( $params['AsObjects'] ) ? $params['AsObjects'] : true;
 
+        //distributed search: fields to return can be specified in 2 parameters
+        $fieldsToReturn = isset( $params['FieldsToReturn'] ) ? $params['FieldsToReturn'] : array();
+        if ( isset( $params['DistributedSearch']['returnfields'] ) )
+        {
+            $fieldsToReturn = array_merge( $fieldsToReturn, $params['DistributedSearch']['returnfields'] );
+
+        }
+
+
+
         $coreToUse = null;
         $shardQueryPart = null;
         if ( $this->UseMultiLanguageCores === true )
@@ -957,15 +980,23 @@ class eZSolr implements ezpSearchEngine
                     $emit = array();
                     foreach ( $doc as $fieldName => $fieldValue )
                     {
-                        list( $prefix, $rest ) = explode( '_', $fieldName, 2 );
+                        list($prefix, $rest) = explode ('_', $fieldName, 2);
+                        // get the identifier for meta, binary fields
+                        $inner = implode('_', explode('_', $rest, -1));
+
                         if ( $prefix === 'meta' )
                         {
-                            $emit[$rest] = $fieldValue;
+                            $emit[$inner] = $fieldValue;
                         }
                         elseif ( $prefix === 'as' )
                         {
-
-                            $emit['data_map'][substr( $rest,0, -4 )] = ezfSolrStorage::unserializeData( $fieldValue );
+                            $emit['data_map'][$inner] = ezfSolrStorage::unserializeData( $fieldValue );
+                        }
+                        // it may be a field originating from the explicit fieldlist to return, so it should be added for template consumption
+                        // note that the fieldname will be kept verbatim in a substructure 'fields'
+                        elseif( in_array( $fieldName, $fieldsToReturn ) )
+                        {
+                            $emit['fields'][$fieldName] = $fieldValue;
                         }
 
                     }
@@ -976,7 +1007,7 @@ class eZSolr implements ezpSearchEngine
 
                 }
 
-                if ( $doc[ezfSolrDocumentFieldBase::generateMetaFieldName( 'installation_id' )] == self::installationID() )
+                elseif ( $doc[ezfSolrDocumentFieldBase::generateMetaFieldName( 'installation_id' )] == self::installationID() )
                 {
                     // Search result document is from current installation
                     $nodeID = $this->getNodeID( $doc );
