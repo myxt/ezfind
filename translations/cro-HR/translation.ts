@@ -307,11 +307,11 @@
     </message>
     <message>
         <source>Last week</source>
-        <translation>Prošli tjedan</translation>
+        <translation>Zadnjih tjedan dana</translation>
     </message>
     <message>
         <source>Last month</source>
-        <translation>Prošli mjesec</translation>
+        <translation>Zadnjih mjesec dana</translation>
     </message>
     <message>
         <source>Last three months</source>
@@ -319,7 +319,7 @@
     </message>
     <message>
         <source>Last year</source>
-        <translation>Prošle godine</translation>
+        <translation>Zadnjih godinu dana</translation>
     </message>
     <message>
         <source>Display per page</source>
@@ -696,6 +696,10 @@
         <source>Keywords</source>
         <translation>Ključne riječi</translation>
     </message>
+    <message>
+        <source>Publication Year</source>
+        <translation>Godina objave</translation>
+    </message>
 </context>
 <context>
     <name>extension/ezfind/popupmenu</name>
@@ -727,8 +731,8 @@
         <translation>Pretraživanje je trajalo: %1 msek, koristeći </translation>
     </message>
     <message>
-        <source>eZ Find 2.6 search plugin &amp;copy; 1999-2011 eZ Systems AS, powered by Apache Solr 3.1</source>
-        <translation>eZ Find 2.6 ekstenzija za pretraživanje &amp;copy; 1999-2011 eZ Systems AS, upogonjeno koristeći Apache Solr 3.1</translation>
+        <source>eZ Find %version search plugin &amp;copy; 1999-2012 eZ Systems AS, powered by Apache Solr 3.1</source>
+        <translation>eZ Find %version ekstenzija za pretraživanje &amp;copy; 1999-2012 eZ Systems AS, upogonjeno koristeći Apache Solr 3.1</translation>
     </message>
 </context>
 </TS>

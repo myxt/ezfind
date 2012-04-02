@@ -4,7 +4,7 @@
 // ## BEGIN COPYRIGHT, LICENSE AND WARRANTY NOTICE ##
 // SOFTWARE NAME: eZ Find
 // SOFTWARE RELEASE: 1.0.x
-// COPYRIGHT NOTICE: Copyright (C) 1999-2011 eZ Systems AS
+// COPYRIGHT NOTICE: Copyright (C) 1999-2012 eZ Systems AS
 // SOFTWARE LICENSE: GNU General Public License v2.0
 // NOTICE: >
 //   This program is free software; you can redistribute it and/or
@@ -73,7 +73,8 @@ class ezfSearchResultInfo
                       // is also a word searched for and not present in the
                       // spellcheck dictionary/index -- Solr php response writer "bug"
                       'spellcheck_collation',
-                      'interestingTerms'
+                      'interestingTerms',
+                      'clusters'
             );
     }
 
@@ -246,8 +247,8 @@ class ezfSearchResultInfo
                                                 'countList' => array() );
                             foreach ( $facetField as $value => $count )
                             {
-                                $fieldInfo['nameList'][$value] = '"' . $value . '"';
-                                $fieldInfo['queryLimit'][$value] = $field . ':"' . $value . '"';
+                                $fieldInfo['nameList'][$value] = $value;
+                                $fieldInfo['queryLimit'][$value] = $field . ':' . $value;
                                 $fieldInfo['countList'][$value] = $count;
                             }
                             $facetArray[] = $fieldInfo;
@@ -322,6 +323,17 @@ class ezfSearchResultInfo
                 if ( isset( $this->ResultArray['facet_counts']['facet_ranges'] ) )
                 {
                     return $this->ResultArray['facet_counts']['facet_ranges'];
+                }
+                else
+                {
+                    return false;
+                }
+            } break;
+            case 'clusters':
+            {
+                if ( isset( $this->ResultArray['clusters'] ) )
+                {
+                    return $this->ResultArray['clusters'];
                 }
                 else
                 {
