@@ -510,6 +510,13 @@
    -->
     <fieldtype name="geohash" class="solr.GeoHashField"/>
 
+    <!-- Myxt cutom case insensitive string type -->
+    <fieldType name="string_ci" class="solr.TextField" sortMissingLast="true" omitNorms="true">
+        <analyzer type="query">
+            <tokenizer class="solr.KeywordTokenizerFactory"/>
+            <filter class="solr.LowerCaseFilterFactory"/>
+        </analyzer>
+    </fieldType>
 
  </types>
 
@@ -614,6 +621,9 @@
            <dynamicField name="*_gpt" type="geopoint"  indexed="true"  stored="true"/>
              <!-- storage fields accepts base64 encoded strings -->
            <dynamicField name="*_bst" type="binary"  indexed="false"  stored="true"/>
+
+       <!-- Myxt case insensitive string, see above. -->
+       <dynamicField name="*_cis"        type="string_ci"  indexed="true"  stored="true" termVectors="true"/>
 
    <!-- eZ Find : Dynamic fields for content attributes indexed in subfields, the name ends with ___<type>
         to make a difference between dynamicFields for "regular" content and dynamic field for subattributes
