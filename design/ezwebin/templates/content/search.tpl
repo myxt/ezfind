@@ -41,8 +41,9 @@
                               'facet', $defaultSearchFacets,
                               'filter', $filterParameters,
                               'publish_date', $dateFilter,
-                              'spell_check', array( true() )
-                             ))}
+                              'spell_check', array( true() ),
+                              'search_result_clustering', hash( 'clustering', false() ) )
+                             )}
     {set $search_result=$search['SearchResult']}
     {set $search_count=$search['SearchCount']}
     {def $search_extras=$search['SearchExtras']}
@@ -187,9 +188,12 @@
           <div id="ezfHelp" style="display: none;">
               <ul>
                   <li>{'The search is case insensitive. Upper and lower case characters may be used.'|i18n( 'design/ezfind/search' )}</li>
-                  <li>{'The search result contains all search terms.'|i18n( 'design/ezfind/search' )}</li>
                   <li>{'Phrase search can be achieved by using quotes, example: "Quick brown fox jumps over the lazy dog"'|i18n( 'design/ezfind/search' )}</li>
-                  <li>{'Words may be excluded by using a minus ( - ) character, example: lazy -dog'|i18n( 'design/ezfind/search' )}</li>
+                  <li>{'Words may be excluded by using a minus ( - ) prefix character, example: lazy -dog'|i18n( 'design/ezfind/search' )}</li>
+                  <li>{'Words may be required by using a plus ( + ) prefix character, example: +yellow coat'|i18n( 'design/ezfind/search' )}</li>
+                  <li>{'Wildcard characters * and ? can be used for partial string matching, example: syst* may expand to systems'|i18n( 'design/ezfind/search' )}</li>
+                  <li>{'Fuzzy searches can also be used appending a ~ character, example: like suster~ may match sister'|i18n( 'design/ezfind/search' )}</li>
+                  <li>{'Proximity searches can be established using double quotes and a maximum distance (in words) after a ~ character, example: "conference publish"~5 will match text where conference and publish are separated by a maximum of 5 words'|i18n( 'design/ezfind/search' )}</li>
               </ul>
           </div>
       </fieldset>
@@ -208,7 +212,7 @@
                   {foreach $facetData.nameList as $key2 => $facetName}
                       {if eq( $activeFacetParameters[concat( $defaultFacet['field'], ':', $defaultFacet['name'] )], $facetName )}
                           {set $activeFacetsCount=sum( $key, 1 )}
-                          {def $suffix=$uriSuffix|explode( concat( '&filter[]=', $facetData.queryLimit[$key2] ) )|implode( '' )|explode( concat( '&activeFacets[', $defaultFacet['field'], ':', $defaultFacet['name'], ']=', $facetName ) )|implode( '' )}
+                          {def $suffix=$uriSuffix|explode( concat( '&filter[]=', $facetData.fieldList[$key2], ':"', $key2|solr_quotes_escape, '"' ) )|implode( '' )|explode( concat( '&activeFacets[', $defaultFacet['field'], ':', $defaultFacet['name'], ']=', $facetName ) )|implode( '' )}
                           <li>
                               <a href={concat( $baseURI, $suffix )|ezurl}>[x]</a> <strong>{$defaultFacet['name']}</strong>: {$facetName|trim('"')|wash}
                           </li>
@@ -245,11 +249,11 @@
                         {if ne( $key2, '' )}
                         <li>
                             <a href={concat(
-                                $baseURI, '&filter[]=', $facetData.queryLimit[$key2]|rawurlencode,
+                                $baseURI, '&filter[]=', $facetData.fieldList[$key2], ':"', $key2|solr_quotes_escape|rawurlencode, '"',
                                 '&activeFacets[', $defaultFacet['field'], ':', $defaultFacet['name'], ']=',
                                 $facetName|rawurlencode,
                                 $uriSuffix )|ezurl}>
-                            {$facetName|trim('"')|wash}</a> ({$facetData.countList[$key2]})
+                            {$facetName|wash}</a> ({$facetData.countList[$key2]})
                         </li>
                         {/if}
                     {/foreach}
@@ -259,20 +263,19 @@
               {/if}
           {/foreach}
 
-          {*$search_extras.facet_ranges.meta_published_dt|attribute(show,2)*}
+          {*$search_extras|attribute(show,2)*}
 
-          {* ranges *}
+          {* ranges example
 
             <li><span><strong>{'Publication Year'|i18n( 'extension/ezfind/facets' )}</strong></span>
             {def $publishedRanges = $search_extras.facet_ranges.meta_published_dt.counts}
             <ul>
-            {* TODO add filters (when range filtering is fixed *}
             {foreach $publishedRanges as $year => $count}
                 <li>{$year|extract_left(4)} ({$count})</li>
             {/foreach}
             </ul>
             </li>
-
+          *}
 
           {* date filtering here. Using a simple filter for now. Should use the date facets later on *}
           {if eq( $dateFilter, 0 )}

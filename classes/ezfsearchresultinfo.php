@@ -4,7 +4,7 @@
 // ## BEGIN COPYRIGHT, LICENSE AND WARRANTY NOTICE ##
 // SOFTWARE NAME: eZ Find
 // SOFTWARE RELEASE: 1.0.x
-// COPYRIGHT NOTICE: Copyright (C) 1999-2011 eZ Systems AS
+// COPYRIGHT NOTICE: Copyright (C) 1999-2012 eZ Systems AS
 // SOFTWARE LICENSE: GNU General Public License v2.0
 // NOTICE: >
 //   This program is free software; you can redistribute it and/or
@@ -73,7 +73,8 @@ class ezfSearchResultInfo
                       // is also a word searched for and not present in the
                       // spellcheck dictionary/index -- Solr php response writer "bug"
                       'spellcheck_collation',
-                      'interestingTerms'
+                      'interestingTerms',
+                      'clusters'
             );
     }
 
@@ -159,6 +160,7 @@ class ezfSearchResultInfo
                                                 'count' => count( $facetField ),
                                                 'nameList' => array(),
                                                 'queryLimit' => array(),
+                                                'fieldList' => array(),
                                                 'countList' => array() );
                             foreach ( $facetField as $contentClassID => $count )
                             {
@@ -167,6 +169,7 @@ class ezfSearchResultInfo
                                     $fieldInfo['nameList'][$contentClassID] = $contentClass->attribute( 'name' );
                                     $fieldInfo['queryLimit'][$contentClassID] = 'contentclass_id:' . $contentClassID;
                                     $fieldInfo['countList'][$contentClassID] = $count;
+                                    $fieldInfo['fieldList'][$contentClassID] = 'contentclass_id';
                                 }
                                 else
                                 {
@@ -185,6 +188,7 @@ class ezfSearchResultInfo
                                                 'count' => count( $facetField ),
                                                 'nameList' => array(),
                                                 'queryLimit' => array(),
+                                                'fieldList' => array(),
                                                 'countList' => array() );
                             foreach ( $facetField as $installationID => $count )
                             {
@@ -192,6 +196,7 @@ class ezfSearchResultInfo
                                     $siteNameMapList[$installationID] : $installationID;
                                 $fieldInfo['queryLimit'][$installationID] = 'installation_id:' . $installationID;
                                 $fieldInfo['countList'][$installationID] = $count;
+                                $fieldInfo['fieldList'][$installationID] = 'installation_id';
                             }
                             $facetArray[] = $fieldInfo;
                         } break;
@@ -203,6 +208,7 @@ class ezfSearchResultInfo
                                                 'count' => count( $facetField ),
                                                 'nameList' => array(),
                                                 'queryLimit' => array(),
+                                                'fieldList' => array(),
                                                 'countList' => array() );
                             foreach ( $facetField as $ownerID => $count )
                             {
@@ -211,6 +217,7 @@ class ezfSearchResultInfo
                                     $fieldInfo['nameList'][$ownerID] = $owner->attribute( 'name' );
                                     $fieldInfo['queryLimit'][$ownerID] = 'owner_id:' . $ownerID;
                                     $fieldInfo['countList'][$ownerID] = $count;
+                                    $fieldInfo['fieldList'][$ownerID] = 'owner_id';
                                 }
                                 else
                                 {
@@ -227,11 +234,13 @@ class ezfSearchResultInfo
                                                 'count' => count( $facetField ),
                                                 'nameList' => array(),
                                                 'queryLimit' => array(),
+                                                'fieldList' => array(),
                                                 'countList' => array() );
                             foreach ( $facetField as $languageCode => $count )
                             {
                                 $fieldInfo['nameList'][$languageCode] = $languageCode;
                                 $fieldInfo['queryLimit'][$languageCode] = 'language_code:' . $languageCode;
+                                $fieldInfo['fieldList'][$languageCode] = 'language_code';
                                 $fieldInfo['countList'][$languageCode] = $count;
                             }
                             $facetArray[] = $fieldInfo;
@@ -242,12 +251,14 @@ class ezfSearchResultInfo
                             $fieldInfo = array( 'field' => $attr,
                                                 'count' => count( $facetField ),
                                                 'queryLimit' => array(),
+                                                'fieldList' => array(),
                                                 'nameList' => array(),
                                                 'countList' => array() );
                             foreach ( $facetField as $value => $count )
                             {
-                                $fieldInfo['nameList'][$value] = '"' . $value . '"';
-                                $fieldInfo['queryLimit'][$value] = $field . ':"' . $value . '"';
+                                $fieldInfo['nameList'][$value] = $value;
+                                $fieldInfo['fieldList'][$value] = $field;
+                                $fieldInfo['queryLimit'][$value] = $field . ':' . $value;
                                 $fieldInfo['countList'][$value] = $count;
                             }
                             $facetArray[] = $fieldInfo;
@@ -322,6 +333,17 @@ class ezfSearchResultInfo
                 if ( isset( $this->ResultArray['facet_counts']['facet_ranges'] ) )
                 {
                     return $this->ResultArray['facet_counts']['facet_ranges'];
+                }
+                else
+                {
+                    return false;
+                }
+            } break;
+            case 'clusters':
+            {
+                if ( isset( $this->ResultArray['clusters'] ) )
+                {
+                    return $this->ResultArray['clusters'];
                 }
                 else
                 {

@@ -740,6 +740,10 @@
         <source>Keywords</source>
         <translation>Parole chiave</translation>
     </message>
+    <message>
+        <source>Publication Year</source>
+        <translation>Anno di Pubblicazione</translation>
+    </message>
 </context>
 <context>
     <name>extension/ezfind/popupmenu</name>
@@ -783,8 +787,12 @@
         <translation>La ricerca ha impiegato: %1 msec, usando</translation>
     </message>
     <message>
-        <source>eZ Find 2.6 search plugin &amp;copy; 1999-2011 eZ Systems AS, powered by Apache Solr 3.1</source>
-        <translation>eZ Find 2.6 search plugin &amp;copy; 1999-2011 eZ Systems AS, powered by Apache Solr 3.1</translation>
+        <source>eZ Find 2.6 search plugin &amp;copy; 1999-2012 eZ Systems AS, powered by Apache Solr 3.1</source>
+        <translation type="obsolete">eZ Find 2.6 search plugin &amp;copy; 1999-2012 eZ Systems AS, powered by Apache Solr 3.1</translation>
+    </message>
+    <message>
+        <source>eZ Find %version search plugin &amp;copy; 1999-2012 eZ Systems AS, powered by Apache Solr 3.1</source>
+        <translation>eZ Find %version plugin di ricerca &amp;copy; 1999-2012 eZ Systems AS, powered by Apache Solr 3.1</translation>
     </message>
 </context>
 </TS>

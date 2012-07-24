@@ -3,7 +3,7 @@
 // ## BEGIN COPYRIGHT, LICENSE AND WARRANTY NOTICE ##
 // SOFTWARE NAME: eZ Find
 // SOFTWARE RELEASE: 1.0.x
-// COPYRIGHT NOTICE: Copyright (C) 1999-2011 eZ Systems AS
+// COPYRIGHT NOTICE: Copyright (C) 1999-2012 eZ Systems AS
 // EXTENDED COPYRIGHT NOTICE :
 //      Part of this class was inspired from the following contributors' work :
 //      * Kristof Coomans <kristof[dot]coomans[at]telenet[dot]be>
@@ -71,6 +71,7 @@ class eZSolr implements ezpSearchEngine
             'remote_id' => 'mstring',
             'class_identifier' => 'mstring',
             'main_node_id' => 'sint',
+            'always_available' => 'boolean',
             'modified' => 'date',
             'published' => 'date',
             'main_parent_node_id' => 'sint' );
@@ -411,10 +412,11 @@ class eZSolr implements ezpSearchEngine
      *
      * @param eZContentObject $contentObject Object to add to search engine
      * @param bool $commit Whether to commit after adding the object.
-              If set, run optimize() as well every 1000nd time this function is run.
+     *        If set, run optimize() as well every 1000nd time this function is run.
+     * @param $commitWithin Commit within delay (see Solr documentation)
      * @return bool True if the operation succeed.
      */
-    function addObject( $contentObject, $commit = true )
+    function addObject( $contentObject, $commit = true, $commitWithin = 0 )
     {
         // Add all translations to the document list
         $docList = array();
@@ -435,6 +437,7 @@ class eZSolr implements ezpSearchEngine
         }
 
         $mainNodePathArray = $mainNode->attribute( 'path_array' );
+        $mainNodeID = $mainNode->attribute( 'node_id' );
         // initialize array of parent node path ids, needed for multivalued path field and subtree filters
         $nodePathArray = array();
 
@@ -449,9 +452,10 @@ class eZSolr implements ezpSearchEngine
         $nodeAttributeValues = array();
         foreach ( $contentObject->attribute( 'assigned_nodes' ) as $contentNode )
         {
+            $nodeID = $contentNode->attribute( 'node_id' );
             foreach ( eZSolr::nodeAttributes() as $attributeName => $fieldType )
             {
-                $nodeAttributeValues[] = array( 'name' => $attributeName,
+                $nodeAttributeValues[$nodeID][] = array( 'name' => $attributeName,
                                                 'value' => $contentNode->attribute( $attributeName ),
                                                 'fieldType' => $fieldType );
             }
@@ -547,11 +551,24 @@ class eZSolr implements ezpSearchEngine
             }
 
             // Set content node meta attribute values.
-            foreach ( $nodeAttributeValues as $metaInfo )
+            foreach ( $nodeAttributeValues as $nodeID => $metaInfoArray )
             {
-                $doc->addField( ezfSolrDocumentFieldBase::generateMetaFieldName( $metaInfo['name'] ),
+                foreach( $metaInfoArray as $metaInfo)
+                {
+                    $doc->addField( ezfSolrDocumentFieldBase::generateMetaFieldName( $metaInfo['name'] ),
                                 ezfSolrDocumentFieldBase::preProcessValue( $metaInfo['value'], $metaInfo['fieldType'] ) );
+                }
             }
+
+            // Main node gets single valued fields for sorting, using a dedicated prefix
+            foreach ( $nodeAttributeValues[$mainNodeID] as $metaInfo )
+            {
+                $fieldName = 'main_node_' . ezfSolrDocumentFieldBase::generateMetaFieldName( $metaInfo['name'] );
+                $doc->addField( $fieldName,
+                                    ezfSolrDocumentFieldBase::preProcessValue( $metaInfo['value'],
+                                    $metaInfo['fieldType'] ) );
+            }
+
 
             // Add main url_alias
             $doc->addField( ezfSolrDocumentFieldBase::generateMetaFieldName( 'main_url_alias' ), $mainNode->attribute( 'url_alias' ) );
@@ -665,8 +682,7 @@ class eZSolr implements ezpSearchEngine
         {
             $commit = false;
         }
-        $commitWithin = 0;
-        if ( $this->FindINI->variable( 'IndexOptions', 'CommitWithin' ) > 0 )
+        if ( $commitWithin === 0 && $this->FindINI->variable( 'IndexOptions', 'CommitWithin' ) > 0 )
         {
             $commitWithin = $this->FindINI->variable( 'IndexOptions', 'CommitWithin' );
         }
@@ -745,7 +761,7 @@ class eZSolr implements ezpSearchEngine
         {
             foreach ( $this->SolrLanguageShards as $shard )
             {
-                $shard->Solr->commit();
+                $shard->commit();
             }
         }
         else
@@ -1410,7 +1426,7 @@ class eZSolr implements ezpSearchEngine
         $extensionInfo = ezpExtension::getInstance( 'ezfind' )->getInfo();
         return ezpI18n::tr(
             'ezfind',
-            'eZ Find %version search plugin &copy; 1999-2011 eZ Systems AS, powered by Apache Solr 3.1',
+            'eZ Find %version search plugin &copy; 1999-2012 eZ Systems AS, powered by Apache Solr 3.5',
             null,
             array( '%version' => $extensionInfo['version'] )
         );
