@@ -791,4 +791,11 @@
         <translation type="unfinished"></translation>
     </message>
 </context>
+<context>
+    <name>kernel/navigationpart</name>
+    <message>
+        <source>eZFind</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
 </TS>
