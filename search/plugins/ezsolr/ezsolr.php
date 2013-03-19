@@ -3,7 +3,7 @@
 // ## BEGIN COPYRIGHT, LICENSE AND WARRANTY NOTICE ##
 // SOFTWARE NAME: eZ Find
 // SOFTWARE RELEASE: 1.0.x
-// COPYRIGHT NOTICE: Copyright (C) 1999-2012 eZ Systems AS
+// COPYRIGHT NOTICE: Copyright (C) 1999-2013 eZ Systems AS
 // EXTENDED COPYRIGHT NOTICE :
 //      Part of this class was inspired from the following contributors' work :
 //      * Kristof Coomans <kristof[dot]coomans[at]telenet[dot]be>
@@ -335,6 +335,23 @@ class eZSolr implements ezpSearchEngine
     protected function getNodeID( $doc )
     {
         $docPathStrings = $doc[ezfSolrDocumentFieldBase::generateMetaFieldName( 'path_string' )];
+        $docVisibilities = $doc[ezfSolrDocumentFieldBase::generateMetaFieldName( 'is_invisible' )];
+        if ( count( $docPathStrings ) > 1 )
+        {
+            // reordering the path strings and the associated visibilities so
+            // that the main node path string and the main node visibility are
+            // in the first position.
+            $mainNodeIdx = array_search(
+                $doc[ezfSolrDocumentFieldBase::generateMetaFieldName( 'main_path_string' )],
+                $docPathStrings
+            );
+            if ( $mainNodeIdx != 0 )
+            {
+                array_unshift( $docVisibilities, $docVisibilities[$mainNodeIdx] );
+                array_unshift( $docPathStrings, $docPathStrings[$mainNodeIdx] );
+                unset( $docVisibilities[$mainNodeIdx], $docPathStrings[$mainNodeIdx] );
+            }
+        }
         $locationFilter = isset( $this->postSearchProcessingData['subtree_array'] ) ? $this->postSearchProcessingData['subtree_array'] : array();
         $subtreeLimitations = isset( $this->postSearchProcessingData['subtree_limitations'] ) ? $this->postSearchProcessingData['subtree_limitations'] : array();
         $validSubtreeArray = $this->getValidPathStringsByLimitation(
@@ -345,16 +362,39 @@ class eZSolr implements ezpSearchEngine
             $docPathStrings,
             $subtreeLimitations
         );
+        $ignoreVisibility = eZContentObjectTreeNode::showInvisibleNodes();
+        if ( isset( $this->postSearchProcessingData['ignore_visibility'] ) )
+        {
+            $ignoreVisibility = $this->postSearchProcessingData['ignore_visibility'];
+        }
+
 
         // Intersect between $validSubtreeArray (search location filter) and $validSubtreeLimitations (user policy limitations)
         // indicates valid locations for $doc in current search query
-        // If this intersect is not empty, we take the first element to get the corresponding node ID
-        $validSubtrees = array_intersect( $validSubtreeArray, $validSubtreeLimitations );
+        // If this intersect is not empty, we take the first node id that
+        // matches the visibility requirement
+        $validSubtrees = array_flip(
+            array_intersect( $validSubtreeArray, $validSubtreeLimitations )
+        );
         if ( !empty( $validSubtrees ) )
         {
-            $validSubtree = array_shift( $validSubtrees );
-            $nodeArray = explode( '/', rtrim( $validSubtree, '/' ) );
-            return (int)array_pop( $nodeArray );
+            foreach ( $docPathStrings as $k => $path )
+            {
+                if ( isset( $validSubtrees[$path] ) )
+                {
+                    if ( $ignoreVisibility || !$docVisibilities[$k] )
+                    {
+                        $nodeArray = explode( '/', rtrim( $path, '/' ) );
+                        return (int)array_pop( $nodeArray );
+                    }
+                }
+            }
+            eZDebug::writeError(
+                "Could not find a visible location for content " .
+                "#{$doc[ezfSolrDocumentFieldBase::generateMetaFieldName( 'id' )]} " .
+                "that current user has read access on. The Solr index is probably outdated",
+                __METHOD__
+            );
         }
         else
         {
@@ -368,6 +408,14 @@ class eZSolr implements ezpSearchEngine
                     "Subtree limitations for user : " . print_r( $subtreeLimitations, true ),
                     __METHOD__
                 );
+            }
+            foreach ( $docPathStrings as $k => $path )
+            {
+                if ( $ignoreVisibility || !$docVisibilities[$k] )
+                {
+                    $nodeArray = explode( '/', rtrim( $path, '/' ) );
+                    return (int)array_pop( $nodeArray );
+                }
             }
         }
 
@@ -793,11 +841,25 @@ class eZSolr implements ezpSearchEngine
     /**
      * Removes object $contentObject from the search database.
      *
+     * @deprecated Since 5.0, use removeObjectById()
      * @param eZContentObject $contentObject the content object to remove
      * @param bool $commit Whether to commit after removing the object
      * @return bool True if the operation succeed.
      */
     function removeObject( $contentObject, $commit = null )
+    {
+        return $this->removeObjectById( $contentObject->attribute( 'id' ), $commit );
+    }
+
+    /**
+     * Removes a content object by Id from the search database.
+     *
+     * @since 5.0
+     * @param int $contentObjectId The content object to remove by id
+     * @param bool $commit Whether to commit after removing the object
+     * @return bool True if the operation succeed.
+     */
+    public function removeObjectById( $contentObjectId, $commit = null )
     {
         /*
          * @since eZFind 2.2: allow delayed commits if explicitely set as configuration setting and
@@ -814,7 +876,7 @@ class eZSolr implements ezpSearchEngine
         }
 
         // 1: remove the assciated "elevate" configuration
-        eZFindElevateConfiguration::purge( '', $contentObject->attribute( 'id' ) );
+        eZFindElevateConfiguration::purge( '', $contentObjectId );
         //eZFindElevateConfiguration::synchronizeWithSolr();
         $this->pushElevateConfiguration();
 
@@ -830,7 +892,7 @@ class eZSolr implements ezpSearchEngine
         foreach ( $languages as $language )
         {
             $languageCode = $language->attribute( 'locale' );
-            $docs[$languageCode] = $this->guid( $contentObject, $languageCode );
+            $docs[$languageCode] = $this->guid( $contentObjectId, $languageCode );
         }
         if ( $this->UseMultiLanguageCores === true )
         {
@@ -1117,12 +1179,15 @@ class eZSolr implements ezpSearchEngine
     /**
      * Computes the unique ID of a content object language version
      *
-     * @param eZContentObject $contentObject The content object
+     * @param eZContentObject|int $contentObject The content object OR content object Id
      * @param string $languageCode
      * @return string guid
      */
     function guid( $contentObject, $languageCode = '' )
     {
+        if ( !$contentObject instanceof eZContentObject )
+            return md5( self::installationID() . '-' . $contentObject . '-' . $languageCode );
+
         return md5( self::installationID() . '-' . $contentObject->attribute( 'id' ) . '-' . $languageCode );
     }
 
@@ -1216,7 +1281,7 @@ class eZSolr implements ezpSearchEngine
         $extensionInfo = ezpExtension::getInstance( 'ezfind' )->getInfo();
         return ezpI18n::tr(
             'ezfind',
-            'eZ Find %version search plugin &copy; 1999-2012 eZ Systems AS, powered by Apache Solr 3.5',
+            'eZ Find %version search plugin &copy; 1999-2013 eZ Systems AS, powered by Apache Solr 3.6.1',
             null,
             array( '%version' => $extensionInfo['version'] )
         );

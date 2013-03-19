@@ -187,7 +187,7 @@
     </message>
     <message>
         <source>Words may be required by using a plus ( + ) prefix character, example: +yellow coat</source>
-        <translation type="unfinished">Des mots peuvent être requis en les préfixant par un plus ( + ), par exemple : manteau +jaune</translation>
+        <translation>Des mots peuvent être requis en les préfixant par un plus ( + ), par exemple : manteau +jaune</translation>
     </message>
     <message>
         <source>Wildcard characters * and ? can be used for partial string matching, example: syst* may expand to systems</source>
@@ -787,16 +787,16 @@
         <translation>N/A</translation>
     </message>
     <message>
-        <source>eZ Find 2.6 search plugin &amp;copy; 1999-2012 eZ Systems AS, powered by Apache Solr 3.1</source>
-        <translation type="obsolete">eZ Find 2.6 search plugin &amp;copy; 1999-2012 eZ Systems AS, propulsé par Apache Solr 3.1</translation>
+        <source>eZ Find 2.6 search plugin &amp;copy; 1999-2013 eZ Systems AS, powered by Apache Solr 3.1</source>
+        <translation type="obsolete">eZ Find 2.6 search plugin &amp;copy; 1999-2013 eZ Systems AS, propulsé par Apache Solr 3.1</translation>
     </message>
     <message>
-        <source>eZ Find %version search plugin &amp;copy; 1999-2012 eZ Systems AS, powered by Apache Solr 3.1</source>
-        <translation type="obsolete">eZ Find %version search plugin &amp;copy; 1999-2012 eZ Systems AS, propulsé par Apache Solr 3.1</translation>
+        <source>eZ Find %version search plugin &amp;copy; 1999-2013 eZ Systems AS, powered by Apache Solr 3.1</source>
+        <translation type="obsolete">eZ Find %version search plugin &amp;copy; 1999-2013 eZ Systems AS, propulsé par Apache Solr 3.1</translation>
     </message>
     <message>
-        <source>eZ Find %version search plugin &amp;copy; 1999-2012 eZ Systems AS, powered by Apache Solr 3.5</source>
-        <translation>Plugin de recherche eZ Find %version &amp;copy; 1999-2012 eZ Systems AS, propulsé par Apache Solr 3.5</translation>
+        <source>eZ Find %version search plugin &amp;copy; 1999-2013 eZ Systems AS, powered by Apache Solr 3.6.1</source>
+        <translation>Plugin de recherche eZ Find %version &amp;copy; 1999-2013 eZ Systems AS, propulsé par Apache Solr 3.6.1</translation>
     </message>
 </context>
 </TS>
